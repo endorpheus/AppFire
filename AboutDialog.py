@@ -50,9 +50,11 @@ class AboutDialog(QDialog):
         content_layout.addWidget(QLabel(self.description, styleSheet="font-size: 12pt; color: black;"), alignment=Qt.AlignCenter)
         content_layout.addWidget(QLabel(f"Author: {self.author}", styleSheet="font-size: 12pt; color: black;"), alignment=Qt.AlignCenter)
         content_layout.addWidget(QLabel(f"Email: {self.email}", styleSheet="font-size: 12pt; color: black;"), alignment=Qt.AlignCenter)
-        website_label = QLabel(f"Website: <a href=\"{self.website}\">{self.website}</a>", styleSheet="font-size: 12pt; color: black; text-decoration: none;")
+        # ensure that the link opens in a new tab and deal with link visibility
+        website_label = QLabel(f"Website: <a style=\"color: #313;\" href=\"{self.website}\">{self.website}</a>", styleSheet="font-size: 12pt; color: black; text-decoration: none;")
         website_label.setOpenExternalLinks(True)
         content_layout.addWidget(website_label, alignment=Qt.AlignCenter)
+        
         if self.fixed_width:
             self.setFixedWidth(self.fixed_width)
         else:
@@ -87,7 +89,7 @@ class AboutDialog(QDialog):
             # Check if the click is within the color ball
             ball_rect = QRectF(self.width() - self.color_ball_size - 10, 10, self.color_ball_size, self.color_ball_size)
             if ball_rect.contains(event.pos()):
-                self.hide()
+                self.close()
             else:
                 self.drag_position = event.globalPos() - self.frameGeometry().topLeft()
             event.accept()

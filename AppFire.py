@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import QApplication, QWidget, QSystemTrayIcon, QMenu, QDial
 from PyQt6.QtGui import QIcon, QAction
 from AboutDialog import AboutDialog
 
-VERSION = "1.0"
+VERSION = "1.0.1"
 
 class AppFire(QWidget):
     def __init__(self):
@@ -20,17 +20,12 @@ class AppFire(QWidget):
     def create_tray_menu(self):
         menu = QMenu()
         self.tray_icon.setContextMenu(menu)
-
-        add_new_app_action = menu.addAction("Add New App")
-        add_new_app_action.triggered.connect(self.add_new_app)
-
-        menu.addSeparator()
-
+    
         self.app_menu = menu.addMenu("Apps")
         self.create_app_menu_items()
-
+    
         menu.addSeparator()
-
+    
         about_action = menu.addAction("About")
         about_action.triggered.connect(self.show_about_dialog)
     
@@ -38,70 +33,70 @@ class AppFire(QWidget):
     
         exit_action = menu.addAction("Exit")
         exit_action.triggered.connect(QApplication.quit)
-
-
+    
+    
     def create_app_menu_items(self):
         self.app_menu.clear()
+        add_new_app_action = self.app_menu.addAction("Add New App")
+        add_new_app_action.triggered.connect(self.add_new_app)
+    
+        self.app_menu.addSeparator()
+
         app_names = sorted(self.app_data.keys())
         for app_name in app_names:
             app_submenu = self.app_menu.addMenu(app_name)
-            
             launch_action = QAction("Launch", self)
             launch_action.triggered.connect(lambda checked, name=app_name: self.launch_app(name))
             app_submenu.addAction(launch_action)
-            
             edit_action = QAction("Edit", self)
             edit_action.triggered.connect(lambda checked, name=app_name: self.edit_app(name))
             app_submenu.addAction(edit_action)
-            
             remove_action = QAction("Remove", self)
             remove_action.triggered.connect(lambda checked, name=app_name: self.remove_app(name))
             app_submenu.addAction(remove_action)
-        
-        #make the size wider
-        self.app_menu.setFixedWidth(100)        
 
     def launch_app(self, app_name):
         subprocess.Popen(self.app_data[app_name], shell=True, start_new_session=True)
 
     def add_new_app(self):
-        self.add_dialog = QDialog()
+        self.add_dialog = QDialog(self)
         self.add_dialog.setWindowTitle("Add New App")
-        
-        self.add_dialog.setFixedSize(500, 300)
+        self.add_dialog.setBaseSize(300, 200)
+        self.center_dialog_on_screen(self.add_dialog)
         
         layout = QVBoxLayout()
-    
+
         name_label = QLabel("Name:")
         layout.addWidget(name_label)
         name_input = QLineEdit()
         layout.addWidget(name_input)
-    
+        
         path_label = QLabel("Path:")
         layout.addWidget(path_label)
         path_input = QLineEdit()
         layout.addWidget(path_input)
-    
+        
         browse_button = QPushButton("Browse")
         browse_button.clicked.connect(lambda: self.browse_for_path(path_input))
         layout.addWidget(browse_button)
-    
+        
         add_button = QPushButton("Add")
         add_button.clicked.connect(lambda: self.add_app(name_input.text(), path_input.text()))
-        add_button.clicked.connect(self.add_dialog.hide)
+        add_button.clicked.connect(self.add_dialog.accept)
         layout.addWidget(add_button)
-    
+        
         cancel_button = QPushButton("Cancel")
-        cancel_button.clicked.connect(self.add_dialog.hide)
+        cancel_button.clicked.connect(self.add_dialog.reject)
         layout.addWidget(cancel_button)
-    
+        
         self.add_dialog.setLayout(layout)
-        self.add_dialog.show()
-    
+        self.add_dialog.exec()
+        
     def edit_app(self, app_name):
-        self.edit_dialog = QDialog()
+        self.edit_dialog = QDialog(self)
         self.edit_dialog.setWindowTitle("Edit App")
-        self.edit_dialog.setFixedSize(500, 300)
+        self.edit_dialog.setFixedSize(300, 200)
+        
         layout = QVBoxLayout()
     
         name_label = QLabel("Name:")
@@ -124,18 +119,19 @@ class AppFire(QWidget):
         layout.addWidget(save_button)
     
         cancel_button = QPushButton("Cancel")
-        cancel_button.clicked.connect(self.edit_dialog.hide)
+        cancel_button.clicked.connect(self.edit_dialog.reject)
         layout.addWidget(cancel_button)
     
         self.edit_dialog.setLayout(layout)
-        self.edit_dialog.show()
+        self.center_dialog_on_screen(self.edit_dialog)
+        self.edit_dialog.exec()
 
     def remove_app(self, app_name):
         del self.app_data[app_name]
         self.sort_and_save_app_definitions()
         self.create_app_menu_items()
 
-    def add_app(self, name, path):
+    def add_app(self, name, path):  # not the same as add_new_app above
         self.app_data[name] = path
         self.sort_and_save_app_definitions()
         self.create_app_menu_items()
@@ -148,8 +144,9 @@ class AppFire(QWidget):
         self.create_app_menu_items()
 
     def browse_for_path(self, path_input):
-        path, _ = QFileDialog.getOpenFileName(None, "Browse for Path")
-        path_input.setText(path)
+        file_name, _ = QFileDialog.getOpenFileName(self, "Open File", "", "All Files (*)")
+        if file_name:
+            path_input.setText(file_name)
 
     def load_app_definitions(self):
         try:
@@ -163,6 +160,10 @@ class AppFire(QWidget):
         with open('app_setup.json', 'w') as f:
             json.dump(sorted_app_data, f, indent=4)
         self.app_data = sorted_app_data
+
+    def center_dialog_on_screen(self, dialog):
+        screen = QApplication.primaryScreen().availableGeometry()
+        dialog.move(screen.center() - dialog.rect().center())
 
     def show_about_dialog(self):
         if not self.about_dialog:
