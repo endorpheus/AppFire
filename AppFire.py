@@ -13,6 +13,7 @@ class AppFire(QWidget):
         self.app_data = self.load_app_definitions()
         self.tray_icon = QSystemTrayIcon(self)
         self.tray_icon.setIcon(QIcon("./icons/launcher.png"))
+        self.tray_icon.setToolTip("AppFire " + VERSION)
         self.tray_icon.setVisible(True)
         self.create_tray_menu()
         self.about_dialog = None
@@ -61,7 +62,7 @@ class AppFire(QWidget):
     def add_new_app(self):
         self.add_dialog = QDialog(self)
         self.add_dialog.setWindowTitle("Add New App")
-        self.add_dialog.setBaseSize(300, 200)
+        self.add_dialog.resize(435, 200)
         self.center_dialog_on_screen(self.add_dialog)
         
         layout = QVBoxLayout()
@@ -95,7 +96,6 @@ class AppFire(QWidget):
     def edit_app(self, app_name):
         self.edit_dialog = QDialog(self)
         self.edit_dialog.setWindowTitle("Edit App")
-        self.edit_dialog.setFixedSize(300, 200)
         
         layout = QVBoxLayout()
     
@@ -123,9 +123,13 @@ class AppFire(QWidget):
         layout.addWidget(cancel_button)
     
         self.edit_dialog.setLayout(layout)
-        self.center_dialog_on_screen(self.edit_dialog)
-        self.edit_dialog.exec()
 
+        # size and center
+        self.edit_dialog.resize(435, 200)
+        self.center_dialog_on_screen(self.edit_dialog)
+        
+        self.edit_dialog.exec()
+    
     def remove_app(self, app_name):
         del self.app_data[app_name]
         self.sort_and_save_app_definitions()
@@ -178,6 +182,8 @@ class AppFire(QWidget):
                 opacity=0.8
             )
         self.about_dialog.show()
+        self.about_dialog.raise_()  # Bring the dialog to the front
+        self.about_dialog.activateWindow()  # Activate the dialog
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
