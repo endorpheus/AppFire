@@ -1,6 +1,6 @@
-from PySide6.QtCore import Qt, QTimer, QRectF
-from PySide6.QtWidgets import QDialog, QLabel, QVBoxLayout, QHBoxLayout, QApplication
-from PySide6.QtGui import QColor, QPainter, QBrush, QPen
+from PyQt6.QtCore import Qt, QTimer, QRectF, QPointF
+from PyQt6.QtWidgets import QDialog, QLabel, QVBoxLayout, QHBoxLayout, QApplication
+from PyQt6.QtGui import QColor, QPainter, QBrush, QPen
 import math
 import time
 
@@ -11,7 +11,7 @@ class AboutDialog(QDialog):
         super().__init__(parent)
 
         self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
-        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         self.setWindowTitle(title)
         self.app_name = app_name
@@ -46,14 +46,19 @@ class AboutDialog(QDialog):
         title_label.setStyleSheet("font-size: 18pt; font-weight: bold; color: black;")
         content_layout.addWidget(title_label)
 
-        content_layout.addWidget(QLabel(f"Version {self.version}", styleSheet="font-size: 14pt; color: black;"), alignment=Qt.AlignCenter)
-        content_layout.addWidget(QLabel(self.description, styleSheet="font-size: 12pt; color: black;"), alignment=Qt.AlignCenter)
-        content_layout.addWidget(QLabel(f"Author: {self.author}", styleSheet="font-size: 12pt; color: black;"), alignment=Qt.AlignCenter)
-        content_layout.addWidget(QLabel(f"Email: {self.email}", styleSheet="font-size: 12pt; color: black;"), alignment=Qt.AlignCenter)
+        content_layout.addWidget(QLabel(f"Version {self.version}", styleSheet="font-size: 14pt; color: black;"), 
+                               alignment=Qt.AlignmentFlag.AlignCenter)
+        content_layout.addWidget(QLabel(self.description, styleSheet="font-size: 12pt; color: black;"), 
+                               alignment=Qt.AlignmentFlag.AlignCenter)
+        content_layout.addWidget(QLabel(f"Author: {self.author}", styleSheet="font-size: 12pt; color: black;"), 
+                               alignment=Qt.AlignmentFlag.AlignCenter)
+        content_layout.addWidget(QLabel(f"Email: {self.email}", styleSheet="font-size: 12pt; color: black;"), 
+                               alignment=Qt.AlignmentFlag.AlignCenter)
         # ensure that the link opens in a new tab and deal with link visibility
-        website_label = QLabel(f"Website: <a style=\"color: #313;\" href=\"{self.website}\">{self.website}</a>", styleSheet="font-size: 12pt; color: black; text-decoration: none;")
+        website_label = QLabel(f"Website: <a style=\"color: #313;\" href=\"{self.website}\">{self.website}</a>", 
+                             styleSheet="font-size: 12pt; color: black; text-decoration: none;")
         website_label.setOpenExternalLinks(True)
-        content_layout.addWidget(website_label, alignment=Qt.AlignCenter)
+        content_layout.addWidget(website_label, alignment=Qt.AlignmentFlag.AlignCenter)
         
         if self.fixed_width:
             self.setFixedWidth(self.fixed_width)
@@ -62,17 +67,17 @@ class AboutDialog(QDialog):
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         # Draw dialog background
-        painter.setPen(QPen(QColor(0, 0, 0), 1, Qt.SolidLine))
+        painter.setPen(QPen(QColor(0, 0, 0), 1, Qt.PenStyle.SolidLine))
         background_color = QColor(127, 224, 255, int(255 * self.opacity))
         painter.setBrush(QBrush(background_color))
         painter.drawRoundedRect(self.rect(), 10, 10)
 
         # Draw color ball in upper right corner
         painter.setBrush(QBrush(self.color_ball_color))
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
         ball_rect = QRectF(self.width() - self.color_ball_size - 10, 10, self.color_ball_size, self.color_ball_size)
         painter.drawEllipse(ball_rect)
 
@@ -85,23 +90,36 @@ class AboutDialog(QDialog):
         self.update()
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             # Check if the click is within the color ball
             ball_rect = QRectF(self.width() - self.color_ball_size - 10, 10, self.color_ball_size, self.color_ball_size)
-            if ball_rect.contains(event.pos()):
+            if ball_rect.contains(event.position()):
                 self.close()
             else:
-                self.drag_position = event.globalPos() - self.frameGeometry().topLeft()
+                # Convert QPointF to QPoint for window movement
+                global_pos = event.globalPosition()
+                self.drag_position = QPointF(
+                    global_pos.x() - self.frameGeometry().x(),
+                    global_pos.y() - self.frameGeometry().y()
+                )
             event.accept()
 
     def mouseMoveEvent(self, event):
-        if event.buttons() == Qt.LeftButton and hasattr(self, 'drag_position'):
-            self.move(event.globalPos() - self.drag_position)
+        if event.buttons() == Qt.MouseButton.LeftButton and hasattr(self, 'drag_position'):
+            # Use QPointF for precise movement
+            global_pos = event.globalPosition()
+            new_pos = QPointF(
+                global_pos.x() - self.drag_position.x(),
+                global_pos.y() - self.drag_position.y()
+            )
+            self.move(int(new_pos.x()), int(new_pos.y()))
             event.accept()
 
     def centerOnScreen(self):
         screen = QApplication.primaryScreen().availableGeometry()
-        self.move(screen.center() - self.rect().center())
+        screen_center = screen.center()
+        self.move(screen_center.x() - self.width() // 2,
+                 screen_center.y() - self.height() // 2)
 
     def sizeHint(self):
         return self.minimumSizeHint()
